@@ -1,5 +1,5 @@
 
-package ifneeded aloupe 0.7 [list source [file join $dir aloupe.tcl]]
+package ifneeded aloupe 0.8 [list source [file join $dir aloupe.tcl]]
 
 
 # A short intro (for Ruff! docs generator:)
@@ -57,7 +57,7 @@ The `-command` option may be passed to `::aloupe::run` which will run the passed
 
 The *aloupe* can be run with the options:
 
-  * `-size` - a size of the loupe's box (12 .. 256)
+  * `-size` - a size of the loupe's box (8 .. 256)
   * `-zoom` - a zoom factor (2 .. 32)
   * `-alpha` - an opacity of the loupe (0.0 .. 1.0)
   * `-background` - a background color of the loupe

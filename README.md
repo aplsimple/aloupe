@@ -1,6 +1,6 @@
 ## What's that
 
-The *aloupe* is a Tcl/Tk small widget / utility allowing to view the screen through a loupe.
+The *aloupe v0.8* is a Tcl/Tk small widget / utility allowing to view the screen through a loupe.
 
 It allows also
 
@@ -50,12 +50,12 @@ The `-command` option may be passed to `::aloupe::run` which will run the passed
 
 The *aloupe* can be run with the options:
 
-  * `-size` - a size of the loupe's box (12 .. 256)
+  * `-size` - a size of the loupe's box (8 .. 256)
   * `-zoom` - a zoom factor (2 .. 32)
   * `-alpha` - an opacity of the loupe (0.0 .. 1.0)
   * `-background` - a background color of the loupe
   * `-geometry` - a displaying window's geometry set as +X+Y
-  * `-ontop` - if *yes*, sets the displaying window above others
+  * `-ontop` - if *yes* (default), sets the displaying window above others
 
 Some options can be used at running *aloupe* from a Tcl code:
 
