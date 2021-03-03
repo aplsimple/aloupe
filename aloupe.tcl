@@ -19,7 +19,7 @@ package require treectrl
 package require Img
 ::msgcat::mcload [file join [file dirname [info script]] msgs]
 
-package provide aloupe 0.8
+package provide aloupe 0.8.1
 
 # _______________________________________________________________________ #
 
@@ -486,7 +486,7 @@ proc ::aloupe::run {args} {
     } else {
       puts "Bad option: $a \"$v\""
       my::Synopsis
-      Exit
+      my::Exit
       return
     }
   }
