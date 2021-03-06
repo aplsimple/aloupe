@@ -19,7 +19,7 @@ package require treectrl
 package require Img
 ::msgcat::mcload [file join [file dirname [info script]] msgs]
 
-package provide aloupe 0.8.1
+package provide aloupe 0.8.2
 
 # _______________________________________________________________________ #
 
@@ -331,9 +331,11 @@ proc ::aloupe::my::Button2Click {} {
   # Processes the click on 'Clipboard' button.
 
   variable data
-  $data(BUT2) configure -style TButton
-  update idletasks
-  after 100 ;# just to make the click visible
+  if {$data(COLOR) ne ""} {
+    StyleButton2 yes -background $data(INVCOLOR) -foreground $data(COLOR)
+    update idletasks
+    after 60 ;# just to make the click visible
+  }
   if {[HandleColor] && !$data(-exit) && $data(-command) ne ""} {
     SaveGeometry
     {*}[string map [list %c $data(COLOR)] $data(-command)]

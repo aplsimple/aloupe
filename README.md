@@ -1,6 +1,6 @@
 ## What's that
 
-The *aloupe v0.8* is a Tcl/Tk small widget / utility allowing to view the screen through a loupe.
+The *aloupe v0.8.2* is a Tcl/Tk small widget / utility allowing to view the screen through a loupe.
 
 It allows also
 
@@ -8,7 +8,7 @@ It allows also
   * to pick a color from the images.
 
 It is inspired by the Tcl/Tk wiki pages:
- 
+
    [A little magnifying glass](https://wiki.tcl-lang.org/page/A+little+magnifying+glass)
 
    [A Screenshot Widget implemented with TclOO](https://wiki.tcl-lang.org/page/A+Screenshot+Widget+implemented+with+TclOO)
@@ -77,5 +77,5 @@ From a Tcl code, *aloupe* is run this way:
   * [Demo and executables](https://github.com/aplsimple/aloupe/releases) for Linux / Windows
 
 ## License
- 
+
 MIT.
