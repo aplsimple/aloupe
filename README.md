@@ -1,6 +1,6 @@
 ## What's that
 
-The *aloupe v0.8.2* is a Tcl/Tk small widget / utility allowing to view the screen through a loupe.
+The *aloupe v0.9.1* is a Tcl/Tk small widget / utility allowing to view the screen through a loupe.
 
 It allows also
 
@@ -56,11 +56,14 @@ The *aloupe* can be run with the options:
   * `-background` - a background color of the loupe
   * `-geometry` - a displaying window's geometry set as +X+Y
   * `-ontop` - if *yes* (default), sets the displaying window above others
+  * `-save` - if *yes* (default), saves/restores the appearance settings
+  * `-inifile` - a file to save the settings (~/.config/aloupe.conf by default)
 
 Some options can be used at running *aloupe* from a Tcl code:
 
   * `-exit` - is *false* which means "don't finish Tcl/Tk session, just close the loupe"
   * `-command` - a command to be run at pressing the *To clipboard* button
+  * `-commandname` - a label instead of *To clipboard*; means "no clipboard"
   * `-parent` - a parent window's path (when the parent closes, its *aloupe* children do too)
 
 From a Tcl code, *aloupe* is run this way:

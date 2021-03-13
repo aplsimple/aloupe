@@ -19,7 +19,7 @@ package require treectrl
 package require Img
 ::msgcat::mcload [file join [file dirname [info script]] msgs]
 
-package provide aloupe 0.8.2
+package provide aloupe 0.9.1
 
 # _______________________________________________________________________ #
 
@@ -35,9 +35,12 @@ namespace eval ::aloupe {
       -background #ff40ff \
       -exit yes \
       -command "" \
+      -commandname "" \
       -ontop yes \
       -geometry "" \
       -parent "" \
+      -save yes \
+      -inifile "~/.config/aloupe.conf" \
     ]
   }
 }
@@ -46,11 +49,13 @@ namespace eval ::aloupe {
 proc ::aloupe::my::Synopsis {} {
   # Short info about usage.
 
+  variable data
   puts "
 Syntax:
   tclsh aloupe.tcl ?option value ...?
-where 'option' may be -size, -zoom, -alpha, -background, -exit, -command, -ontop.
+where 'option' may be [array names $data(DEFAULTS)].
 "
+  exit
 }
 # ______
 
@@ -64,21 +69,22 @@ proc ::aloupe::my::Message {args} {
 }
 # ______
 
-proc ::aloupe::my::CreateDisplay {} {
+proc ::aloupe::my::CreateDisplay {start} {
   # Creates the displaying window.
+  #   start - yes, if called at start
 
   variable data
-  set data(IMSIZE) [expr {2*$data(-size)*$data(-zoom)}]
-  set data(IMAGE) [image create photo -width $data(IMSIZE) -height $data(IMSIZE)]
+  set sZ [expr {2*$data(-size)*$data(-zoom)}]
+  set data(IMAGE) [image create photo -width $sZ -height $sZ]
   toplevel $data(WDISP)
   wm title $data(WDISP) [::msgcat::mc Loupe]
   $data(WDISP) configure -background [ttk::style configure . -background]
   grid [ttk::label $data(WDISP).lab1 -text " [::msgcat::mc Size]"] -row 0 -column 0 -sticky e
-  grid [ttk::spinbox $data(WDISP).sp1 -from 8 -to 256 -justify center \
+  grid [ttk::spinbox $data(WDISP).sp1 -from 8 -to 500 -justify center \
     -width 4 -textvariable ::aloupe::my::size -command ::aloupe::my::SizeLoupe] \
     -row 0 -column 1 -sticky w
   grid [ttk::label $data(WDISP).lab2 -text " [::msgcat::mc Zoom]"] -row 0 -column 2 -sticky e
-  grid [ttk::spinbox $data(WDISP).sp2 -from 2 -to 32 -justify center \
+  grid [ttk::spinbox $data(WDISP).sp2 -from 1 -to 50 -justify center \
     -width 2 -textvariable ::aloupe::my::zoom] -row 0 -column 3 -sticky w
   grid [ttk::separator $data(WDISP).sep1 -orient horizontal] -row 1 -columnspan 4 -sticky we -pady 2
   grid [ttk::label $data(LABEL) -image $data(IMAGE) -relief flat \
@@ -86,7 +92,10 @@ proc ::aloupe::my::CreateDisplay {} {
   grid [ttk::button $data(WDISP).but1 -text [::msgcat::mc Save] \
     -command ::aloupe::my::Save] -row 3 -column 0 -columnspan 2 -sticky ew
   set data(BUT2) $data(WDISP).but2
-  grid [ttk::button $data(BUT2) -text [::msgcat::mc "To clipboard"] \
+  if {[set but2text $data(-commandname)] eq ""} {
+    set but2text [::msgcat::mc "To clipboard"]
+  }
+  grid [ttk::button $data(BUT2) -text $but2text \
     -command ::aloupe::my::Button2Click] -row 3 -column 2 -columnspan 2 -sticky ew
   set data(-geometry) [regexp -inline \\+.* $data(-geometry)]
   if {$data(-geometry) ne ""} {
@@ -96,15 +105,15 @@ proc ::aloupe::my::CreateDisplay {} {
   } else {
     ::tk::PlaceWindow $data(WDISP)
   }
-  if {![info exists data(BUTCFG)]} {
+  if {$start} {
     set defargs [list \
       -foreground [ttk::style configure . -foreground] \
       -background [ttk::style configure . -background] ]
     set data(BUTCFG) [StyleButton2 no {*}$defargs]
-    lappend data(BUTCFG) {*}$defargs -text [$data(BUT2) cget -text]
+    lappend data(BUTCFG) {*}$defargs -text $but2text
   }
   bind $data(LABEL) <ButtonPress-1> {::aloupe::my::PickColor %W %X %Y}
-  bind $data(WDISP) <Escape> exit
+  bind $data(WDISP) <Escape> ::aloupe::my::Exit
   wm resizable $data(WDISP) 0 0
   wm protocol $data(WDISP) WM_DELETE_WINDOW ::aloupe::my::Exit
   if {$data(-ontop)} {wm attributes $data(WDISP) -topmost 1}
@@ -122,7 +131,7 @@ proc ::aloupe::my::CreateLoupe {{geom ""}} {
   wm overrideredirect $data(WLOUP) 1
   set canvas $data(WLOUP).c
   canvas $canvas -width 100 -height 100 -background $data(-background) \
-    -relief flat -bd 0 -highlightthickness 2 -highlightbackground red
+    -relief flat -bd 0 -highlightthickness 1 -highlightbackground red
   pack $canvas -fill both -expand true
   bind $canvas <ButtonPress-1>   {::aloupe::my::DragStart %W %X %Y}
   bind $canvas <B1-Motion>       {::aloupe::my::Drag %W %X %Y}
@@ -136,8 +145,9 @@ proc ::aloupe::my::CreateLoupe {{geom ""}} {
 }
 # ______
 
-proc ::aloupe::my::Create {} {
+proc ::aloupe::my::Create {start} {
   # Initializes and creates the utility's windows.
+  #   start - yes, if called at start
 
   variable data
   catch {destroy $data(WLOUP)}
@@ -148,7 +158,7 @@ proc ::aloupe::my::Create {} {
   set data(COLOR) [set data(CAPTURE) ""]
   catch {image delete $data(IMAGE)}
   if {[set wgr [grab current]] ne ""} {grab release $wgr}
-  CreateDisplay
+  CreateDisplay $start
   CreateLoupe
   set data(PREVZOOM) $data(-zoom)
   set data(PREVSIZE) $data(-size)
@@ -171,7 +181,7 @@ proc ::aloupe::my::DragStart {w X Y} {
   set data(-zoom) $zoom
   if {$data(PREVZOOM) != $data(-zoom) || $data(PREVSIZE) != $data(-size)} {
     SaveGeometry
-    Create
+    Create no
     catch {unset data(dragX)}  ;# no drag-n-drop, update the loupe only
     update
     return
@@ -218,23 +228,22 @@ proc ::aloupe::my::DragEnd {w} {
   set curW [winfo width $w]
   set curH [winfo height $w]
   catch {image delete $data(CAPTURE)}
-  set data(CAPTURE) [image create photo -width $curW -height $curH]
-  set zoom 1
-  set loupe_ctr_x [expr {$curX + $curW / 2}]
-  set loupe_ctr_y [expr {$curY + $curH / 2}]
-  after 40 "loupe $data(CAPTURE) $loupe_ctr_x $loupe_ctr_y $curW $curH $zoom"
+  set sz [expr {2*$data(-size)}]
+  set sZ [expr {$sz*$data(-zoom)}]
+  set data(CAPTURE) [image create photo -width $sz -height $sz]
+  set loupe_x [expr {$curX + $sz/2}]
+  set loupe_y [expr {$curY + $sz/2}]
+  after 40 "loupe $data(CAPTURE) $loupe_x $loupe_y $sz $sz 1"
   after 50
   update   ;# enough time to hide the window and capture the image
   after 50
   catch {
-    $data(IMAGE) copy $data(CAPTURE) \
-      -from 0 0 [expr {2*$data(-size)}] [expr {2*$data(-size)}] \
-      -to 0 0 $data(IMSIZE) $data(IMSIZE) -zoom $data(-zoom)
+    $data(IMAGE) copy $data(CAPTURE) -from 0 0 $sz $sz \
+      -to 0 0 $sZ $sZ -zoom $data(-zoom)
   }
   wm deiconify $data(WDISP)
   wm deiconify $data(WLOUP)
   focus -force $data(WDISP).but2
-  set data(-PREVGEOM) [wm geometry $data(WLOUP)]
 }
 # ______
 
@@ -244,11 +253,10 @@ proc ::aloupe::my::SizeLoupe {} {
   variable data
   variable size
   set data(-size) $size
-  lassign [split [winfo geometry $data(LABEL)] x+] w1
-  lassign [split $data(-PREVGEOM) x+] w2 h2 x2 y2
-  set w [expr {int(2.0*$size*$data(-zoom)*$w2/$w1)}]  ;# count the previous zoom
+  lassign [split [wm geometry $data(WLOUP)] +] -> x y
+  set sz [expr {2*$size}]
   destroy $data(WLOUP)
-  CreateLoupe ${w}x${w}+$x2+$y2
+  CreateLoupe ${sz}x${sz}+$x+$y
 }
 # ______
 
@@ -259,16 +267,11 @@ proc ::aloupe::my::InitGeometry {{geom ""}} {
 
   variable data
   if {$geom eq ""} {
-    lassign [split [winfo geometry $data(LABEL)] x+] w h
-    set w [expr {int($w/$data(-zoom))}]
-    set h [expr {int($h/$data(-zoom))}]
+    set sz [expr {2*$data(-size)}]
     lassign [winfo pointerxy .] x y
-    set x [expr {$x-$w/2}]
-    set y [expr {$y-$h/2}]
-    set geom ${w}x${h}+$x+$y
-    if {$w>0 && $h>0 && $x>-$w && $y>-$h} {
-      set data(-PREVGEOM) $geom
-    }
+    set x [expr {$x-$sz/2}]
+    set y [expr {$y-$sz/2}]
+    set geom ${sz}x${sz}+$x+$y
   }
   wm geometry $data(WLOUP) $geom
 }
@@ -383,7 +386,7 @@ proc ::aloupe::my::HandleColor {{doclb yes}} {
       Message -title "Color of Image" -icon warning \
         -message "Click the magnified image\nto get a pixel's color.\n\nThen hit this button."
     } else {
-      if {$doclb} {
+      if {$doclb && $data(-commandname) eq ""} {
         clipboard clear
         clipboard append -type STRING $data(COLOR)
       }
@@ -411,6 +414,60 @@ proc ::aloupe::my::PickColor {w X Y} {
     set data(COLOR) [format "#%02x%02x%02x" $r $g $b]
     set data(INVCOLOR) [format "#%02x%02x%02x" {*}[InvertBg $r $g $b]]
     HandleColor no
+    set msec [clock milliseconds]
+    if {[info exists data(MSEC)] && [expr {($msec-$data(MSEC))<400}]} {
+      Button2Click
+    }
+    set data(MSEC) $msec
+  }
+}
+# ______
+
+proc ::aloupe::my::SaveOptions {} {
+  # Saves options of appearance to a file.
+
+  variable data
+  if {!$data(-save)} return
+  set w $data(WDISP)
+  catch {file mkdir [file dirinfo $data(-inifile)]}
+  catch {
+    if {[info exists data(CONFIG)]} {set old $data(CONFIG)} {set old ""}
+    append new {[options]} \n
+    foreach opt [array names data] {
+      if {$opt in {-size -geometry -background -zoom -alpha -ontop}} {
+        if {$opt eq "-geometry"} {
+          set val [wm geometry $w]
+        } else {
+          set val $data($opt)
+        }
+        append new "[string range $opt 1 end]=$val" \n
+      }
+    }
+    if {$old ne $new} {  ;# update config, if necessary
+      set chan [open $data(-inifile) w]
+      puts -nonewline $chan $new
+      close $chan
+    }
+  }
+}
+# ______
+
+proc ::aloupe::my::RestoreOptions {} {
+  # Restores options of appearance from a file.
+
+  variable data
+  if {!$data(-save)} return
+  if {![file exists $data(-inifile)]} return
+  set chan [open $data(-inifile)]
+  set data(CONFIG) [read $chan]
+  close $chan
+  set svd $data(DEFAULTS)
+  foreach line [split $data(CONFIG) \n] {
+    if {[string match "*=*" $line]} {
+      set opt -[string range $line 0 [string first = $line]-1]
+      set val [string range $line [string length $opt] end]
+      set ${svd}($opt) [set data($opt) $val]
+    }
   }
 }
 # ______
@@ -443,6 +500,7 @@ proc ::aloupe::my::Exit {} {
   # Clears all and exits.
 
   variable data
+  SaveOptions
   if {$data(-exit)} exit
   SaveGeometry
   catch {image delete $data(IMAGE)}
@@ -472,9 +530,18 @@ proc ::aloupe::run {args} {
   variable my::size
   variable my::zoom
   # save the default settings of aloupe
+  set data(-commandname) ""
   if {![info exists my::data(DEFAULTS)]} {
-    set my::data(DEFAULTS) ::aloupe::_DEFAULTS_
-    array set $my::data(DEFAULTS) [array get my::data]
+    set defar ::aloupe::_DEFAULTS_
+    array set $defar [array get my::data]
+    set my::data(DEFAULTS) $defar
+    catch {set my::data(-inifile) [dict get $args -inifile]}
+    catch {
+      if { ([dict exists $args -save] && [dict get $args -save]) || \
+      (![dict exists $args -save] && $my::data(-save)) } {
+        my::RestoreOptions
+      }
+    }
   }
   # restore the default settings of aloupe (for a 2nd/3rd... run)
   set svd $my::data(DEFAULTS)
@@ -488,14 +555,12 @@ proc ::aloupe::run {args} {
     } else {
       puts "Bad option: $a \"$v\""
       my::Synopsis
-      my::Exit
-      return
     }
   }
   catch {::apave::obj untouchWidgets "*_a_loupe_loup*"}  ;# don't theme the loupe
   set my::size [set my::data(PREVSIZE) $my::data(-size)]
   set my::zoom [set my::data(PREVZOOM) $my::data(-zoom)]
-  my::Create
+  my::Create yes
 }
 # ___________________________ Stand-alone run ___________________________ #
 
@@ -508,5 +573,5 @@ if {[info exist ::argv0] && [file normalize $::argv0] eq [file normalize [info s
   ::aloupe::run {*}$::argv
 }
 # _________________________________ EOF _________________________________ #
-#ARGS1: -size 20 -zoom 10 -alpha .2 -background "yellow" -ontop 0
-#-RUNF1: ~/PG/github/pave/tests/test2_pave.tcl 23 9 12 "small icons"
+#-ARGS1: -alpha .2 -background "yellow" -ontop 1 -save 1 -inifile 123 -commandname "Get"
+#RUNF1: ~/PG/github/pave/tests/test2_pave.tcl 23 9 12 "small icons"

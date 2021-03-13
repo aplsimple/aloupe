@@ -1,5 +1,5 @@
 
-package ifneeded aloupe 0.8.2 [list source [file join $dir aloupe.tcl]]
+package ifneeded aloupe 0.9.1 [list source [file join $dir aloupe.tcl]]
 
 
 # A short intro (for Ruff! docs generator:)
@@ -7,7 +7,7 @@ package ifneeded aloupe 0.8.2 [list source [file join $dir aloupe.tcl]]
 namespace eval aloupe {
 
   set _ruff_preamble {
-The *aloupe v0.8.2* is a Tcl/Tk small widget / utility allowing to view the screen through a loupe.
+The *aloupe v0.9.1* is a Tcl/Tk small widget / utility allowing to view the screen through a loupe.
 
 It allows also
 
@@ -15,7 +15,7 @@ It allows also
   * to pick a color from the images.
 
 It is inspired by the Tcl/Tk wiki pages:
- 
+
    [A little magnifying glass](https://wiki.tcl-lang.org/page/A+little+magnifying+glass)
 
    [A Screenshot Widget implemented with TclOO](https://wiki.tcl-lang.org/page/A+Screenshot+Widget+implemented+with+TclOO)
@@ -63,11 +63,14 @@ The *aloupe* can be run with the options:
   * `-background` - a background color of the loupe
   * `-geometry` - a displaying window's geometry set as +X+Y
   * `-ontop` - if *yes* (default), sets the displaying window above others
+  * `-save` - if *yes* (default), saves/restores the appearance settings
+  * `-inifile` - a file to save the settings (~/.config/aloupe.conf by default)
 
 Some options can be used at running *aloupe* from a Tcl code:
 
   * `-exit` - is *false* which means "don't finish Tcl/Tk session, just close the loupe"
   * `-command` - a command to be run at pressing the *To clipboard* button
+  * `-commandname` - a label instead of *To clipboard*; means "no clipboard"
   * `-parent` - a parent window's path (when the parent closes, its *aloupe* children do too)
 
 From a Tcl code, *aloupe* is run this way:
@@ -84,7 +87,7 @@ From a Tcl code, *aloupe* is run this way:
   * [Demo and executables](https://github.com/aplsimple/aloupe/releases) for Linux / Windows
 
 ## License
- 
+
 MIT.
   }
 
