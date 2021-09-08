@@ -31,8 +31,8 @@ There are also stand-alone [aloupe executables](https://github.com/aplsimple/alo
 
 The executables are started as simply as:
 
-     aloupe
-     aloupe.exe
+     aloupe ?option value ...?
+     aloupe.exe ?option value ...?
 
 After the start, two windows would be displayed: a moveable loupe (at the mouse pointer) and a displaying window.
 
@@ -63,10 +63,10 @@ Some options can be used at running *aloupe* from a Tcl code:
 
   * `-exit` - is *false* which means "don't finish Tcl/Tk session, just close the loupe"
   * `-command` - a command to be run at pressing the *To clipboard* button
-  * `-commandname` - a label instead of *To clipboard*; means "no clipboard"
+  * `-commandname` - a label instead of *To clipboard*; when set it means also "no copy to clipboard"
   * `-parent` - a parent window's path (when the parent closes, its *aloupe* children do too)
 
-From a Tcl code, *aloupe* is run this way:
+From a Tcl code, *aloupe* widget is called this way:
 
      package require aloupe
      ::aloupe::run ?option value ...?
