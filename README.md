@@ -1,6 +1,6 @@
 ## What's that
 
-The *aloupe v0.9.1* is a Tcl/Tk small widget / utility allowing to view the screen through a loupe.
+The *aloupe v0.9.4* is a Tcl/Tk small widget / utility allowing to view the screen through a loupe.
 
 It allows also
 
@@ -25,7 +25,7 @@ The *aloupe* utility runs with the command:
 
 where `option` may be `-size, -zoom, -alpha, -background, -geometry, -ontop`.
 
-The `Img` and `treectrl` packages have to be installed to run it. In Debian Linux the packages are titled `libtk-img` and `tktreectrl`.
+The `Img` and `treectrl` packages have to be installed to run it. In Debian Linux the packages are titled `libtk-img` and `tktreectrl`. If *aloupe* is run by a *tclkit* that doesn't provide these packages, define an environment variable `TCLLIBPATH` before running *aloupe* so that `TCLLIBPATH` be a list of pathes to the packages.
 
 There are also stand-alone [aloupe executables](https://github.com/aplsimple/aloupe/releases) for Linux / Windows.
 
@@ -58,6 +58,7 @@ The *aloupe* can be run with the options:
   * `-ontop` - if *yes* (default), sets the displaying window above others
   * `-save` - if *yes* (default), saves/restores the appearance settings
   * `-inifile` - a file to save the settings (~/.config/aloupe.conf by default)
+  * `-locale` - a preferable locale (e.g., ru, ua, cz)
 
 Some options can be used at running *aloupe* from a Tcl code:
 
