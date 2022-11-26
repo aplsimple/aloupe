@@ -12,6 +12,18 @@
 
 package require Tk
 
+# _____ Remove installed (perhaps) packages used here _____ #
+
+foreach _ {apave baltip bartabs hl_tcl ttk::theme::awlight ttk::theme::awdark awthemes} {
+  set __ [package version $_]
+  catch {
+    package forget $_
+    namespace delete ::$_
+    puts "aloupe: clearing $_ $__"
+  }
+  unset __
+}
+
 # use TCLLIBPATH variable (some tclkits don't see it)
 catch {
   foreach _apave_ [lreverse $::env(TCLLIBPATH)] {
@@ -33,6 +45,7 @@ package provide aloupe 0.9.6
 # ________________________ Variables _________________________ #
 
 namespace eval ::aloupe {
+  variable filename {}
   namespace eval my {
     variable size 26
     variable zoom 8
@@ -53,6 +66,9 @@ namespace eval ::aloupe {
       -save yes \
       -inifile "~/.config/aloupe.conf" \
       -locale "" \
+      -apavedir "" \
+      -cs -2 \
+      -fcgeom {} \
     ]
   }
 }
@@ -106,28 +122,33 @@ proc ::aloupe::my::CreateDisplay {start} {
   set data(IMAGE) [image create photo -width $sZ -height $sZ]
   toplevel $data(WDISP)
   wm title $data(WDISP) [::msgcat::mc Loupe]
-  $data(WDISP) configure -background [ttk::style configure . -background]
-  grid [ttk::label $data(WDISP).lab1 -text " [::msgcat::mc Size]"] -row 0 -column 0 -sticky e
-  grid [ttk::spinbox $data(WDISP).sp1 -from 8 -to 500 -justify center \
-    -width 4 -textvariable ::aloupe::my::size -command ::aloupe::my::SizeLoupe] \
-    -row 0 -column 1 -sticky w
-  grid [ttk::label $data(WDISP).lab2 -text " [::msgcat::mc Zoom]"] -row 0 -column 2 -sticky e
-  grid [ttk::spinbox $data(WDISP).sp2 -from 1 -to 50 -justify center \
-    -width 2 -textvariable ::aloupe::my::zoom] -row 0 -column 3 -sticky w
-  grid [ttk::label $data(WDISP).lab3 -text " [::msgcat::mc Pause]"] -row 0 -column 4 -sticky e
-  grid [ttk::spinbox $data(WDISP).sp3 -from 0 -to 60 -justify center \
-    -width 2 -textvariable ::aloupe::my::pause] -row 0 -column 5 -sticky w
-  grid [ttk::separator $data(WDISP).sep1 -orient horizontal] -row 1 -columnspan 6 -sticky we -pady 2
+  set fg [ttk::style configure . -foreground]
+  set bg [ttk::style configure . -background]
+  set opts [ttk::style config TButton]
+  catch {set fg [dict get $opts -foreground]}
+  catch {set bg [dict get $opts -background]}
+  $data(WDISP) configure -background $bg
+  grid [label $data(WDISP).l -fg $fg -bg $bg] -row 0 -columnspan 2 -sticky we
+  pack [label $data(WDISP).l.lab1 -text " [::msgcat::mc Size]" -fg $fg -bg $bg] -side left -anchor e -expand 1
+  pack [ttk::spinbox $data(WDISP).l.sp1 -from 8 -to 500 -justify center \
+    -width 4 -textvariable ::aloupe::my::size -command ::aloupe::my::ShowLoupe] -side left
+  pack [label $data(WDISP).l.lab2 -text " [::msgcat::mc Zoom]" -fg $fg -bg $bg] -side left -anchor e -expand 1
+  pack [ttk::spinbox $data(WDISP).l.sp2 -from 1 -to 50 -justify center \
+    -width 2 -textvariable ::aloupe::my::zoom] -side left
+  pack [label $data(WDISP).l.lab3 -text " [::msgcat::mc Pause]" -fg $fg -bg $bg] -side left -anchor e -expand 1
+  pack [ttk::spinbox $data(WDISP).l.sp3 -from 0 -to 60 -justify center \
+    -width 2 -textvariable ::aloupe::my::pause] -side left
+  grid [ttk::separator $data(WDISP).sep1 -orient horizontal] -row 1 -columnspan 2 -sticky we -pady 2
   grid [ttk::label $data(LABEL) -image $data(IMAGE) -relief flat \
-    -style [lindex [SetStyle TLabel no -bd 0] 1]] -row 2 -columnspan 6 -padx 2
+    -style [lindex [SetStyle TLabel no -bd 0] 1]] -row 2 -columnspan 2 -padx 2
   set data(BUT2) $data(WDISP).but2
   if {[set but2text $data(-commandname)] eq ""} {
     set but2text [::msgcat::mc "To clipboard"]
   }
   grid [ttk::button $data(BUT2) -text $but2text \
-    -command ::aloupe::my::Button2Click] -row 3 -column 0 -columnspan 3 -sticky ew
+    -command ::aloupe::my::Button2Click] -row 3 -column 0 -sticky ew
   grid [ttk::button $data(WDISP).but1 -text [::msgcat::mc Save] \
-    -command ::aloupe::my::Save] -row 3 -column 3 -columnspan 3 -sticky ew
+    -command ::aloupe::my::Save] -row 3 -column 1 -sticky ew
   set data(-geometry) [regexp -inline \\+.* $data(-geometry)]
   if {$data(-geometry) ne ""} {
     wm geometry $data(WDISP) $data(-geometry)
@@ -137,9 +158,7 @@ proc ::aloupe::my::CreateDisplay {start} {
     ::tk::PlaceWindow $data(WDISP)
   }
   if {$start} {
-    set defargs [list \
-      -foreground [ttk::style configure . -foreground] \
-      -background [ttk::style configure . -background] ]
+    set defargs [list -foreground $fg -background $bg]
     set data(BUTCFG) [StyleButton2 no {*}$defargs]
     lappend data(BUTCFG) {*}$defargs -text $but2text
   }
@@ -176,6 +195,19 @@ proc ::aloupe::my::CreateLoupe {{geom ""}} {
 }
 #_______________________
 
+proc ::aloupe::my::Theme {} {
+  # Themes the utility
+
+  variable data
+  if {$data(-apavedir) eq {}} return
+  source [file join $data(-apavedir) apaveinput.tcl]
+  ::apave::initWM -cs $data(-cs) -theme alt
+  if {$data(-fcgeom) ne {}} {
+    ::apave::obj chooserGeomVars {} ::aloupe::my::data(-fcgeom)
+  }
+}
+#_______________________
+
 proc ::aloupe::my::Create {start} {
   # Initializes and creates the utility's windows.
   #   start - yes, if called at start
@@ -183,10 +215,6 @@ proc ::aloupe::my::Create {start} {
   variable data
   catch {destroy $data(WLOUP)}
   catch {destroy $data(WDISP)}
-  set data(WLOUP) "$data(-parent)._a_loupe_loup"
-  set data(WDISP) "$data(-parent)._a_loupe_disp"
-  set data(LABEL) "$data(WDISP).label"
-  set data(COLOR) [set data(CAPTURE) ""]
   catch {image delete $data(IMAGE)}
   if {[set wgr [grab current]] ne ""} {grab release $wgr}
   CreateDisplay $start
@@ -311,7 +339,7 @@ proc ::aloupe::my::DisplayImage {w} {
 
 # ________________________ Geometry _________________________ #
 
-proc ::aloupe::my::SizeLoupe {} {
+proc ::aloupe::my::ShowLoupe {} {
   # Re-displays the loupe at changing its size.
 
   variable data
@@ -532,10 +560,17 @@ proc ::aloupe::my::Save {} {
   if {![IsCapture]} return
   wm withdraw $data(WLOUP)
   set filetypes { {"PNG Images" .png} {"All Image Files" {.png .gif}} }
-  catch {::apave::obj themeExternal "$data(WLOUP)*"}  ;# theme the file chooser
-  set file [tk_getSaveFile -parent $data(WDISP) \
-    -title [::msgcat::mc "Save the Loupe"] -filetypes $filetypes]
+  set file [file tail $::aloupe::filename]
+  set argl [list -parent $data(WDISP) -title [::msgcat::mc "Save the Loupe"] \
+    -filetypes $filetypes -defaultextension .png -initialfile $file]
+  if {$data(-fcgeom) ne {}} {
+    set file [::apave::obj chooser tk_getSaveFile ::aloupe::filename {*}$argl]
+  } else {
+    catch {::apave::obj themeExternal "$data(WLOUP)*"}  ;# theme the file chooser
+    set file [tk_getSaveFile {*}$argl]
+  }
   if {$file ne ""} {
+    set ::aloupe::filename $file
     if {![regexp -nocase {\.(png|gif)$} $file -> ext]} {
       set ext "png"
       append file ".${ext}"
@@ -545,7 +580,7 @@ proc ::aloupe::my::Save {} {
         -message "Error writing to file \"$file\":\n$err"
     }
   }
-  wm deiconify $data(WLOUP)
+  ShowLoupe
 }
 #_______________________
 
@@ -598,11 +633,11 @@ proc ::aloupe::run {args} {
   }
   # restore the default settings of aloupe (for a 2nd/3rd... run)
   set svd $my::data(DEFAULTS)
-  foreach an [array names $svd)] {
-    set my::data($an) [set ${svd}($an)] ;# a bit of addresses
+  foreach an [array names $svd] {
+    set my::data($an) [set ${svd}($an)] ;# "by variable address"
   }
   foreach {a v} $args {
-    if {($v ne "" || $a in {-geometry}) && \
+    if {($v ne "" || $a in {-geometry -fcgeom}) && \
     [info exists my::data($a)] && [string is lower [string index $a 1]]} {
       set my::data($a) $v
     } else {
@@ -620,6 +655,11 @@ proc ::aloupe::run {args} {
   set my::size [set my::data(PREVSIZE) $my::data(-size)]
   set my::zoom [set my::data(PREVZOOM) $my::data(-zoom)]
   set my::pause $my::data(-pause)
+  set my::data(WDISP) "$data(-parent)._a_loupe_disp"
+  set my::data(WLOUP) "$data(-parent)._a_loupe_loup"
+  set my::data(LABEL) "$data(WDISP).label"
+  set my::data(COLOR) [set data(CAPTURE) ""]
+  my::Theme
   my::Create yes
 }
 
@@ -628,7 +668,6 @@ proc ::aloupe::run {args} {
 if {[info exist ::argv0] && [file normalize $::argv0] eq [file normalize [info script]]} {
   wm withdraw .
   catch {
-    ttk::style theme use clam
     ttk::style config TButton -width 9 -buttonborder 1 -labelborder 0 -padding 1
   }
   ::aloupe::run {*}$::argv
