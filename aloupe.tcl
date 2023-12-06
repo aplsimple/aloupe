@@ -1,20 +1,22 @@
 #! /usr/bin/env tclsh
-# _______________________________________________________________________ #
-#
-# This is a screen loupe.
-#
-# Scripted by Alex Plotnikov (https://aplsimple.github.io).
-#
-# See README.md for details.
-#
+###########################################################
+# Name:    aloupe.tcl
+# Author:  Alex Plotnikov  (aplsimple@gmail.com)
+# Date:    Feb 26, 2021
+# Brief:   Handles a screen loupe.
 # License: MIT.
-# _______________________________________________________________________ #
+###########################################################
+
+# _________________________ aloupe ________________________ #
 
 package require Tk
+
+package provide aloupe 1.2
 
 namespace eval ::aloupe {
   variable solo [expr {[info exist ::argv0] && [file normalize $::argv0] eq [file normalize [info script]]}]
 }
+if {$::aloupe::solo} {wm withdraw .}
 
 # _____ Remove installed (perhaps) packages used here _____ #
 
@@ -41,18 +43,39 @@ if {$::aloupe::solo} {
   }
 }
 
-package require treectrl
-package require Img
+# ________________________ Run solo at need _________________________ #
 
-::msgcat::mcload [file join [file dirname [info script]] msgs]
+proc ::aloupe::RunSolo {} {
+  # Runs aloupe as a sole Tcl script.
+  # When aloupe runs from tclkit, it may fail. So try it with tclsh deployed.
 
-package provide aloupe 1.0
+  set tclsh [auto_execok tclsh]
+  set tclexe [info nameofexecutable]
+  # tclsh may be sort of "tcl.sh" to run a tclkit
+  if {[file exists $tclsh] && [file size $tclsh]>1024 && $tclsh ne $tclexe} {
+    if {$::aloupe::solo} {set aar $::argv} {set aar {}}
+    exec -- $tclsh $::aloupe::aloupescript {*}$aar &
+  } else {
+    puts "aloupe: $::aloupe::runerr"
+  }
+
+}
+set ::aloupe::aloupescript [info script]
+set ::aloupe::starterr [catch {package require treectrl; package require Img} ::aloupe::runerr]
+if {$::aloupe::solo && $::aloupe::starterr} {
+  ::aloupe::RunSolo
+  exit
+}
 
 # ________________________ Variables _________________________ #
+
+::msgcat::mcload [file join [file dirname [info script]] msgs]
 
 namespace eval ::aloupe {
   variable filename {}
   namespace eval my {
+    variable HOMEDIR ~
+    if {[info exists ::env(HOME)]} {set HOMEDIR $::env(HOME)}
     variable size 26
     variable zoom 8
     variable pause 0
@@ -70,7 +93,7 @@ namespace eval ::aloupe {
       -geometry "" \
       -parent "" \
       -save yes \
-      -inifile "~/.config/aloupe.conf" \
+      -inifile [file join $HOMEDIR .config aloupe.conf] \
       -locale "" \
       -apavedir "" \
       -cs -2 \
@@ -595,6 +618,10 @@ proc ::aloupe::run {args} {
   # Runs the loupe.
   #  args - options of the loupe
 
+  if {$::aloupe::starterr} {
+    RunSolo
+    return
+  }
   variable my::data
   variable my::size
   variable my::zoom
