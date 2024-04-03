@@ -11,7 +11,7 @@
 
 package require Tk
 
-package provide aloupe 1.4
+package provide aloupe 1.6
 
 namespace eval ::aloupe {
   variable solo [expr {[info exist ::argv0] && [file normalize $::argv0] eq [file normalize [info script]]}]
@@ -127,17 +127,19 @@ proc ::aloupe::my::Message {args} {
 }
 #_______________________
 
-proc ::aloupe::my::InvertBg {r g b} {
-  # Inverts colors from light to dark and vice versa to get "fg" from "bg".
-  # It's simplified way, just to not include the bulky HSV code.
-  #  r - red component
-  #  g - green component
-  #  b - blue component
-  # Returns {R G B} list of inverted colors.
+proc ::aloupe::my::InvertBg {color} {
+  # Gets fg color (white/black) for a bg color.
+  #  color - bg color
 
-  set c [expr {$r<100 && $g<100 || $r<100 && $b<100 || $b<100 && $g<100 ||
-    ($r+$g+$b)<300 ? 255 : 0}]
-  return [list $c $c $c]
+  lassign [winfo rgb . $color] r g b
+  if {($r%256+$b%256)<15 && ($g%256)>180} {
+    set res black
+  } elseif {$r+1.5*$g+0.5*$b > 100000} {
+    set res black
+  } else {
+    set res white
+  }
+  return $res
 }
 
 # ________________________ Main and loop windows _________________________ #
@@ -372,7 +374,7 @@ proc ::aloupe::my::Refresh {} {
   # Refreshes the loupe image without mouse click.
 
   variable data
-  ::aloupe::my::DisplayImage $data(WLOUP)
+  DragEnd $data(WLOUP)
 }
 
 # ________________________ Geometry _________________________ #
@@ -503,7 +505,7 @@ proc ::aloupe::my::PickColor {w X Y} {
   catch {
     lassign [$data(IMAGE) get $x $y] r g b
     set data(COLOR) [format "#%02x%02x%02x" $r $g $b]
-    set data(INVCOLOR) [format "#%02x%02x%02x" {*}[InvertBg $r $g $b]]
+    set data(INVCOLOR) [InvertBg $data(COLOR)]
     HandleColor no
     set msec [clock milliseconds]
     if {[info exists data(MSEC)] && [expr {($msec-$data(MSEC))<400}]} {
